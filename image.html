@@ -4,154 +4,148 @@
     <meta charset="UTF-8">
     <title>Cats vs Hedgehogs: Pizza War</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #222; font-family: Arial, sans-serif; }
-        canvas { display: block; background: #87CEEB; } /* Голубое небо Италии */
-        #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 2px 2px 0 #000; font-size: 20px; }
+        body { margin: 0; padding: 0; background: #1a1a1a; font-family: 'Arial Black', sans-serif; overflow: hidden; color: white; }
+        
+        /* Меню */
+        #menu {
+            position: absolute; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://img.freepik.com/free-photo/delicious-pizza-indoors_23-2150873870.jpg');
+            background-size: cover; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+
+        h1 { font-size: 60px; color: #ffcc00; text-shadow: 5px 5px #e74c3c; text-align: center; margin-bottom: 10px; }
+        .subtitle { font-size: 20px; color: #fff; margin-bottom: 40px; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 10px; }
+
+        .btn {
+            padding: 20px 50px; font-size: 30px; cursor: pointer;
+            background: #2e7d32; color: white; border: 4px solid #fff;
+            border-radius: 50px; transition: 0.3s; text-transform: uppercase;
+        }
+        .btn:hover { background: #e74c3c; transform: scale(1.1); box-shadow: 0 0 20px #fff; }
+
+        /* Интерфейс игры */
+        #game-ui { position: absolute; top: 20px; left: 20px; display: none; font-size: 24px; z-index: 10; }
+        canvas { display: none; background: #5c940d; border-top: 5px solid #fff; border-bottom: 5px solid #fff; }
+        
+        .pizza-icon { font-size: 40px; }
     </style>
 </head>
 <body>
-    <div id="ui">Счет: <span id="score">0</span> | Жизни: <span id="hp">3</span></div>
-    <canvas id="gameCanvas"></canvas>
+
+    <div id="menu">
+        <h1>Кот-Итальянец <span style="color:#fff">VS</span> Ежи-Шаурмисты</h1>
+        <div class="subtitle">Защити честь пиццы багетом и автоматом! 🍕🔫</div>
+        <button class="btn" onclick="startGame()">ИГРАТЬ</button>
+        <p style="margin-top: 20px;">Управление: <b>W / S</b> — Движение | <b>Клик</b> — Огонь</p>
+    </div>
+
+    <div id="game-ui">
+        🍕 Пицца-очки: <span id="score">0</span> | ❤️ Здоровье: <span id="hp">5</span>
+    </div>
+    <canvas id="game"></canvas>
 
 <script>
-const canvas = document.getElementById('gameCanvas');
+const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
-const hpEl = document.getElementById('hp');
+const menu = document.getElementById('menu');
+const ui = document.getElementById('game-ui');
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let score = 0;
-let health = 3;
-let gameOver = false;
-
-// Игрок (Кот)
-const player = {
-    x: 50,
-    y: canvas.height / 2,
-    w: 60,
-    h: 60,
-    speed: 5,
-    color: '#f3e5ab' // Цвет кота
-};
-
+let health = 5;
+let gameActive = false;
 const bullets = [];
 const enemies = [];
 const keys = {};
 
-// Управление
-window.addEventListener('keydown', e => keys[e.code] = true);
-window.addEventListener('keyup', e => keys[e.code] = false);
-window.addEventListener('mousedown', shoot);
+const player = { x: 100, y: canvas.height/2, w: 60, h: 60 };
 
-function shoot() {
-    if(gameOver) return;
-    bullets.push({
-        x: player.x + player.w,
-        y: player.y + player.h / 2,
-        speed: 10,
-        size: 30 // Размер багета
-    });
+function startGame() {
+    menu.style.display = 'none';
+    canvas.style.display = 'block';
+    ui.style.display = 'block';
+    gameActive = true;
+    gameLoop();
 }
 
-function spawnEnemy() {
-    if(gameOver) return;
-    enemies.push({
-        x: canvas.width,
-        y: Math.random() * (canvas.height - 100) + 50,
-        w: 50,
-        h: 50,
-        speed: 2 + Math.random() * 3
-    });
-}
+window.onkeydown = e => keys[e.code] = true;
+window.onkeyup = e => keys[e.code] = false;
+window.onmousedown = () => { if(gameActive) bullets.push({ x: player.x + 60, y: player.y + 30 }); };
 
-setInterval(spawnEnemy, 1500);
+function gameLoop() {
+    if(!gameActive) return;
 
-function update() {
-    if(gameOver) return;
+    // Рисуем фон (Трава)
+    ctx.fillStyle = '#5c940d';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Движение кота
-    if (keys['KeyW'] && player.y > 0) player.y -= player.speed;
-    if (keys['KeyS'] && player.y < canvas.height - player.h) player.y += player.speed;
+    if(keys['KeyW'] && player.y > 50) player.y -= 8;
+    if(keys['KeyS'] && player.y < canvas.height - 100) player.y += 8;
 
-    // Пули (Багеты)
-    bullets.forEach((b, index) => {
-        b.x += b.speed;
-        if(b.x > canvas.width) bullets.splice(index, 1);
+    // РИСУЕМ КОТА (Итальянец)
+    ctx.fillStyle = '#f3e5ab'; // Кот
+    ctx.fillRect(player.x, player.y, 60, 60);
+    ctx.fillStyle = 'white'; // Поварской колпак
+    ctx.fillRect(player.x + 5, player.y - 25, 50, 30);
+    ctx.fillStyle = 'black'; // Автомат
+    ctx.fillRect(player.x + 40, player.y + 35, 50, 12);
+
+    // БАГЕТЫ (Пули)
+    ctx.fillStyle = '#DEB887';
+    bullets.forEach((b, i) => {
+        b.x += 15;
+        ctx.fillRect(b.x, b.y, 40, 10);
+        ctx.strokeStyle = '#8B4513';
+        ctx.strokeRect(b.x, b.y, 40, 10);
+        if(b.x > canvas.width) bullets.splice(i, 1);
     });
 
-    // Враги (Ежи)
-    enemies.forEach((en, eIdx) => {
-        en.x -= en.speed;
+    // ЕЖИ С ШАУРМОЙ (Враги)
+    if(Math.random() < 0.03) {
+        enemies.push({ x: canvas.width, y: Math.random() * (canvas.height - 100) + 50, s: 4 + Math.random() * 5 });
+    }
 
-        // Столкновение багета с ежом
-        bullets.forEach((b, bIdx) => {
-            if(b.x < en.x + en.w && b.x + b.size > en.x && b.y < en.y + en.h && b.y + 10 > en.y) {
-                enemies.splice(eIdx, 1);
-                bullets.splice(bIdx, 1);
+    enemies.forEach((en, i) => {
+        en.x -= en.s;
+        
+        // Рисуем ежа
+        ctx.fillStyle = '#444';
+        ctx.beginPath(); ctx.arc(en.x, en.y, 25, 0, 7); ctx.fill();
+        // Шампур с шаурмой
+        ctx.strokeStyle = '#ddd'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(en.x, en.y); ctx.lineTo(en.x - 40, en.y); ctx.stroke();
+        ctx.fillStyle = '#d2b48c'; // Шаурма на шампуре
+        ctx.fillRect(en.x - 35, en.y - 10, 20, 20);
+
+        // Столкновение с багетом
+        bullets.forEach((b, bi) => {
+            if(b.x > en.x - 25 && b.x < en.x + 25 && b.y > en.y - 25 && b.y < en.y + 25) {
+                enemies.splice(i, 1);
+                bullets.splice(bi, 1);
                 score += 10;
-                scoreEl.innerText = score;
+                document.getElementById('score').innerText = score;
             }
         });
 
-        // Столкновение ежа с котом
-        if(en.x < player.x + player.w && en.x + en.w > player.x && en.y < player.y + player.h && en.y + en.h > player.y) {
-            enemies.splice(eIdx, 1);
+        // Удар шампуром
+        if(en.x < player.x + 60 && en.x > player.x && en.y > player.y && en.y < player.y + 60) {
+            enemies.splice(i, 1);
             health--;
-            hpEl.innerText = health;
+            document.getElementById('hp').innerText = health;
             if(health <= 0) {
-                gameOver = true;
-                alert("Ежи захватили рынок еды! Твой счет: " + score);
+                alert("Ежи захватили пиццерию! Финита ля комедия. Счет: " + score);
                 location.reload();
             }
         }
-
-        if(en.x < -50) enemies.splice(eIdx, 1);
     });
+
+    requestAnimationFrame(gameLoop);
 }
-
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Рисуем кота (Итальянец)
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.w, player.h);
-    // Колпак
-    ctx.fillStyle = "white";
-    ctx.fillRect(player.x + 10, player.y - 20, 40, 25);
-    // Автомат
-    ctx.fillStyle = "black";
-    ctx.fillRect(player.x + 40, player.y + 30, 40, 10);
-
-    // Рисуем багеты (Пули)
-    ctx.fillStyle = "#DEB887";
-    bullets.forEach(b => {
-        ctx.fillRect(b.x, b.y, b.size, 10);
-        ctx.strokeStyle = "#8B4513";
-        ctx.strokeRect(b.x, b.y, b.size, 10);
-    });
-
-    // Рисуем ежей (Шампуристы)
-    enemies.forEach(en => {
-        ctx.fillStyle = "#555"; // Тело ежа
-        ctx.beginPath();
-        ctx.arc(en.x + 25, en.y + 25, 25, 0, Math.PI * 2);
-        ctx.fill();
-        // Шампур
-        ctx.strokeStyle = "silver";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(en.x, en.y + 25);
-        ctx.lineTo(en.x - 30, en.y + 25);
-        ctx.stroke();
-    });
-
-    update();
-    requestAnimationFrame(draw);
-}
-
-draw();
 </script>
 </body>
 </html>
+
